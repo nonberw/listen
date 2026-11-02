@@ -1,0 +1,132 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{amsmath,amssymb,graphicx,booktabs,hyperref,xcolor,microtype,caption}
+\hypersetup{colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black}
+
+\title{When Do Robot Policies Learn to Listen?\\[0.3em]
+\large A Controlled Study of Training-Data Structure and Language Grounding}
+\author{nonberw\\\small\texttt{github.com/nonberw/listen}}
+\date{November 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+%%ABSTRACT%%
+\end{abstract}
+
+\section{Introduction}
+
+Language-conditioned robot policies promise that a single model can be told what to do. A
+growing body of evidence suggests they often do not listen. When the instruction is changed but
+the scene is not, vision-language-action (VLA) models frequently execute the task they were
+trained on in that scene, and sometimes perform almost as well with an empty
+instruction~\citep{fei2025liberoplus,zhou2025liberopro,fang2026vision,jiang2026encoded}. The
+standard explanation is about data: in robot datasets a scene co-occurs with only one or a few
+tasks, so the image alone predicts the action and the instruction carries little additional
+information~\citep{fang2026vision,jiang2026encoded}.
+
+This explanation is plausible, but it has not been tested causally. Existing studies evaluate or
+probe large pretrained models whose training data cannot be changed, and they are explicit about
+it. \citet{jiang2026encoded} report their findings ``without establishing a causal mechanism'' and
+list training that forces instructions to choose between competing behaviors in the same scene as
+future work. Mechanistic analyses~\citep{wulff2026mechanistic,jiang2026encoded} show \emph{where}
+instruction information is lost inside a model, but not \emph{why} training puts it there.
+
+We test the data explanation directly. In a controlled simulated pick-up task we train
+visuomotor policies from scratch on datasets that differ in exactly one property: the fraction
+$f$ of \emph{contrastive} scenes, meaning scenes demonstrated with several different instructions.
+The total amount of data, the expert, the architecture and the training recipe are held fixed.
+We then measure whether the policies follow \emph{counterfactual} instructions: requests for a block
+that the scene was never demonstrated with. All hypotheses, metrics and the analysis plan were
+pre-registered before any experiment was run, and every deviation is documented.
+
+\paragraph{Contributions.}
+%%CONTRIBUTIONS%%
+
+\section{Related work}
+
+\paragraph{Instruction blindness in VLAs.}
+LIBERO-Plus~\citep{fei2025liberoplus} and LIBERO-PRO~\citep{zhou2025liberopro} perturb LIBERO
+tasks~\citep{liu2023libero} and find that leading models are largely insensitive to the instruction.
+LIBERO-CF~\citep{fang2026vision} builds counterfactual instructions for training scenes, names the
+failure ``vision overriding language'', and proposes an inference-time guidance fix.
+\citet{jiang2026encoded} show that the instructed target is often linearly decodable from a
+policy's internal activations even when the policy does not act on it, and
+\citet{wulff2026mechanistic} localize language sensitivity with activation patching.
+\citet{zhang2026flatness} study how fine-tuning erodes instruction following. All of these evaluate
+existing models. We complement them with a controlled training experiment.
+
+\paragraph{Language priors and contrastive data outside robotics.}
+The same failure appeared in visual question answering, where models answered from the question
+alone. The fix was to balance the dataset with complementary pairs: the same question with
+different images and answers~\citep{goyal2017vqa}. Contrast sets~\citep{gardner2020contrast} and
+analyses of annotation artifacts~\citep{gururangan2018annotation} made the same point for text.
+These are all instances of shortcut learning~\citep{geirhos2020shortcut}. Our contrastive scenes
+are the embodied analogue of complementary pairs, with the roles of image and text swapped: the
+same image with different instructions and actions.
+
+\paragraph{Imitation learning machinery.}
+We use action chunking with temporal ensembling~\citep{zhao2023act}, FiLM
+conditioning~\citep{perez2018film}, a frozen sentence encoder~\citep{reimers2019sbert,wang2020minilm},
+DART noise injection~\citep{laskey2017dart} and random-shift augmentation~\citep{kostrikov2021drq}, in
+MuJoCo~\citep{todorov2012mujoco}.
+
+\section{Experimental design}
+
+\paragraph{Task.}
+A 6-DoF arm with a two-finger gripper faces three colored blocks on a table, with colors drawn from
+a pool of four. The instruction asks for one block by color, in one of five training paraphrases
+(e.g.\ ``grab the red block''). The policy sees a $64{\times}64$ RGB image and its end-effector
+position and gripper width. At 10\,Hz it outputs end-effector displacements and an open/close
+command, which a low-level IK controller tracks.
+
+\paragraph{Scenes and contrastive fraction.}
+There are 40 scene templates, each a fixed set of three colors at fixed nominal positions, with a
+$\pm2$\,cm and $\pm15^\circ$ jitter per episode. A \emph{non-contrastive} scene is always
+demonstrated with the same target. A \emph{contrastive} scene is demonstrated with each of its three
+blocks equally often. The default targets of non-contrastive scenes are balanced over colors (9 to
+11 scenes per color), so a global color prior cannot explain behavior. The only cues left are
+the scene's identity and the instruction. We vary
+$f\in\{0, 0.05, 0.1, 0.25, 0.5, 1\}$. Contrastive sets are nested across $f$, and scenes 20--39 are
+non-contrastive for every $f\le 0.5$. These scenes serve as the evaluation set. Every condition
+uses exactly $N=1200$ demonstrations (30 per scene), sampled from a shared pool of scripted
+expert demonstrations collected with DART noise ($\sigma=4$\,mm).
+
+\paragraph{Policy and training.}
+A four-layer CNN in which every layer is FiLM-modulated by the instruction embedding (frozen
+\texttt{all-MiniLM-L6-v2}, 384-d), followed by an MLP head that predicts a chunk of five future
+actions. Training uses 12k AdamW steps with batch 256, MSE loss and random-shift augmentation, and is
+identical across conditions. Execution uses temporal ensembling over the last five chunks.
+
+\paragraph{Metrics.}
+The primary metric is the \emph{counterfactual grounding rate} (CGR). In a non-contrastive
+evaluation scene, the policy is asked for one of the two blocks the scene was never demonstrated
+with, and CGR is the fraction of episodes in which the first block the gripper closes on is the
+instructed one. We also report the \emph{default rate} (closing on the scene's trained block), the
+rate of committing to no block, nominal success on the trained instruction, CGR with three held-out
+paraphrases, and grounding on ten never-seen scene layouts. Each run is evaluated on the same 660
+episodes (300 counterfactual, 150 nominal, 120 paraphrase, 90 held-out-layout).
+
+\paragraph{Statistics.}
+There are three training seeds per condition. Confidence intervals come from a two-level
+bootstrap (training runs, then episodes). Each $f>0$ is compared with $f=0$ by a one-sided
+run-level bootstrap test with Holm correction, together with a logistic regression of grounding on
+categorical $f$ with a fixed seed effect, as pre-registered.
+
+%%RESULTS%%
+
+\section{Limitations}
+%%LIMITATIONS%%
+
+\section{Conclusion}
+%%CONCLUSION%%
+
+\paragraph{Reproducibility.}
+Code, the pre-registration with its commit history, all per-episode evaluation records and the
+analysis script are available at \url{https://github.com/nonberw/listen}.
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+\end{document}
