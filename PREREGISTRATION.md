@@ -97,3 +97,21 @@ label settles around -0.5. Policies are now executed with ACT-style temporal ens
 last CHUNK predictions (exponential weights, decay 0.1). With it, the pilot policies reached 80-87% nominal
 success on a 30-episode check. Training, data, conditions, metrics and hypotheses are
 unchanged. Pilot runs used seed 99 and are excluded from the hypothesis tests.
+
+**2026-11-03, exploratory experiment E added after the pilot. It was written down before any
+main-sweep result had been seen, and it is labeled exploratory everywhere it is reported.**
+In the pilot at f = 0 the policy almost never took the scene's default block (3%). It
+either followed the instruction (57%) or committed to nothing (40%). Our reading is that
+with 40 color-balanced scenes, mapping the color word to the color is easier to learn than
+memorizing 40 scene -> target pairs. If so, the shortcut should come back when memorizing scenes
+is easy.
+
+- *Design.* "Few-scene" regime: 4 scene templates (training scenes 20-23), N = 1200 demos as
+  before (300 per scene). Conditions: f = 0 (all 4 scenes non-contrastive) and f = 0.25 (scene 23
+  contrastive with 100 demos per target; scenes 20-22 non-contrastive). Same policy, training and
+  execution recipe, and 3 seeds.
+- *Evaluation.* 300 counterfactual and 150 nominal episodes in scenes 20-22 (non-contrastive in
+  both conditions).
+- *Expectations.* E1: in the few-scene regime at f = 0, the default rate is clearly higher than in
+  the 40-scene regime at f = 0. E2: f = 0.25 lowers the default rate in scenes 20-22 compared with
+  f = 0.

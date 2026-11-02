@@ -25,16 +25,19 @@ MAX_STEPS = 40
 WORKERS = 8
 
 
-def episode_specs():
+def episode_specs(regime: str = "main"):
     d = Design()
     specs = []
-    cf_pairs = [(s, t) for s in EVAL_SCENES for t in range(3) if t != d.default_target[s]]
+    scenes = EVAL_SCENES if regime == "main" else Design.FEW_EVAL
+    cf_pairs = [(s, t) for s in scenes for t in range(3) if t != d.default_target[s]]
     for k in range(300):
         s, t = cf_pairs[k % len(cf_pairs)]
         specs.append(("counterfactual", "train", s, t, k, False))
     for k in range(150):
-        s = EVAL_SCENES[k % len(EVAL_SCENES)]
+        s = scenes[k % len(scenes)]
         specs.append(("nominal", "train", s, d.default_target[s], 1000 + k, False))
+    if regime == "few":  # experiment E only has the counterfactual and nominal sets
+        return specs
     for k in range(90):
         specs.append(("heldout_scene", "heldout", k // 9 % 10, k % 3, 2000 + k, False))
     for k in range(120):
@@ -87,7 +90,7 @@ def _run(spec):
 
 
 def evaluate(run_dir: Path):
-    specs = episode_specs()
+    specs = episode_specs("few" if run_dir.name.startswith("few_") else "main")
     with Pool(WORKERS, initializer=_init, initargs=(str(run_dir),)) as pool:
         records = pool.map(_run, specs, chunksize=4)
     (run_dir / "episodes.json").write_text(json.dumps(records))
@@ -98,6 +101,8 @@ def summarize(records):
     out = {}
     for kind in ("counterfactual", "nominal", "heldout_scene", "paraphrase_cf"):
         r = [x for x in records if x["set"] == kind]
+        if not r:
+            continue
         out[kind] = {
             "n": len(r),
             "grounding": np.mean([x["committed"] == x["target"] for x in r]),

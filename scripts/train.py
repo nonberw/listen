@@ -21,15 +21,15 @@ from listen.design import Design  # noqa: E402
 from listen.env import COLORS  # noqa: E402
 from listen.policy import CHUNK, Policy, embed, normalize_actions, random_shift  # noqa: E402
 
-POOL = ROOT / "data" / "pool"
 
-
-def build_dataset(f: float, seed: int):
+def build_dataset(f: float, seed: int, regime: str = "main"):
     design = Design()
     rng = np.random.default_rng(10_000 + seed)
     imgs, props, chunks, langs = [], [], [], []
-    for scene, target, count in design.demo_plan(f):
-        pool = load_demos(POOL, scene, target)
+    plan = design.demo_plan(f) if regime == "main" else design.few_scene_plan(f)
+    pool_dir = ROOT / "data" / ("pool" if regime == "main" else "pool_few")
+    for scene, target, count in plan:
+        pool = load_demos(pool_dir, scene, target)
         color = design.train_scenes[scene].colors[target]
         for k in rng.choice(len(pool), count, replace=False):
             im, pr, ac = pool[k]
@@ -52,16 +52,18 @@ def main():
     ap.add_argument("--steps", type=int, default=12_000)
     ap.add_argument("--batch", type=int, default=256)
     ap.add_argument("--out", default=None)
+    ap.add_argument("--regime", choices=["main", "few"], default="main")
     args = ap.parse_args()
 
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
     dev = "cuda"
-    out = Path(args.out or ROOT / "runs" / f"f{args.f:g}_s{args.seed}")
+    prefix = "" if args.regime == "main" else "few_"
+    out = Path(args.out or ROOT / "runs" / f"{prefix}f{args.f:g}_s{args.seed}")
     out.mkdir(parents=True, exist_ok=True)
 
     t0 = time.perf_counter()
-    imgs, props, chunks, langs = build_dataset(args.f, args.seed)
+    imgs, props, chunks, langs = build_dataset(args.f, args.seed, args.regime)
     imgs, props, chunks, langs = (torch.as_tensor(x, device=dev) for x in (imgs, props, chunks, langs))
     n = len(imgs)
     print(f"dataset: {n} frames, built in {time.perf_counter() - t0:.0f} s", flush=True)
@@ -84,7 +86,7 @@ def main():
 
     torch.save(policy.state_dict(), out / "policy.pt")
     (out / "train.json").write_text(json.dumps({
-        "f": args.f, "seed": args.seed, "frames": n, "steps": args.steps,
+        "f": args.f, "seed": args.seed, "regime": args.regime, "frames": n, "steps": args.steps,
         "final_loss": float(np.mean(losses[-500:])), "seconds": time.perf_counter() - t0,
         "colors": list(COLORS),
     }, indent=2))

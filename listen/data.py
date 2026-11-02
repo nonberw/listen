@@ -46,9 +46,12 @@ def _collect(args):
     return scene_idx, target, demos
 
 
-def build_pool(out: Path, workers: int = 8):
+def build_pool(out: Path, workers: int = 8, few: bool = False):
     design = Design()
-    jobs = [(s, t, DEMOS_PER_SCENE, 1000 * s + t) for s in range(len(design.train_scenes)) for t in range(3)]
+    if few:  # exploratory experiment E; different seeds from the main pool
+        jobs = [(s, t, n, 50_000 + 1000 * s + t) for s, t, n in design.few_pool_jobs()]
+    else:
+        jobs = [(s, t, DEMOS_PER_SCENE, 1000 * s + t) for s in range(len(design.train_scenes)) for t in range(3)]
     out.mkdir(parents=True, exist_ok=True)
     with Pool(workers) as pool:
         for k, (s, t, demos) in enumerate(pool.imap_unordered(_collect, jobs)):

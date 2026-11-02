@@ -78,6 +78,26 @@ class Design:
                 plan.append((s, self.default_target[s], DEMOS_PER_SCENE))
         return plan
 
+    # ---- exploratory experiment E: few scenes, so memorizing the scene is easy ----
+    FEW_SCENES = (20, 21, 22, 23)
+    FEW_EVAL = (20, 21, 22)
+    FEW_PER_SCENE = 300
+
+    def few_scene_plan(self, f: float) -> list[tuple[int, int, int]]:
+        plan = []
+        for s in self.FEW_SCENES:
+            if f > 0 and s == 23:
+                plan += [(s, t, self.FEW_PER_SCENE // 3) for t in range(3)]
+            else:
+                plan.append((s, self.default_target[s], self.FEW_PER_SCENE))
+        return plan
+
+    def few_pool_jobs(self) -> list[tuple[int, int, int]]:
+        """(scene, target, n) needed to serve both few-scene conditions."""
+        jobs = [(s, self.default_target[s], self.FEW_PER_SCENE) for s in self.FEW_SCENES]
+        jobs += [(23, t, self.FEW_PER_SCENE // 3) for t in range(3) if t != self.default_target[23]]
+        return jobs
+
     @staticmethod
     def instruction(color: str, rng, heldout: bool = False) -> str:
         templates = HELDOUT_TEMPLATES if heldout else TRAIN_TEMPLATES
