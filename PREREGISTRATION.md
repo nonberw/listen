@@ -90,4 +90,10 @@ hypothesis tests.
 
 ## Deviations
 
-*(none yet)*
+**2026-11-03, pilot stage (allowed by the Pilot clause).** With the first-action-of-chunk
+execution, both pilot policies reached the block but almost never closed the gripper
+(1-3% nominal success): "arrived" and "start closing" look the same, and the regressed gripper
+label settles around -0.5. Policies are now executed with ACT-style temporal ensembling over the
+last CHUNK predictions (exponential weights, decay 0.1). With it, the pilot policies reached 80-87% nominal
+success on a 30-episode check. Training, data, conditions, metrics and hypotheses are
+unchanged. Pilot runs used seed 99 and are excluded from the hypothesis tests.
