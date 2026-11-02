@@ -66,6 +66,9 @@ def build_pool(out: Path, workers: int = 8, few: bool = False):
 
 def load_demos(pool_dir: Path, scene: int, target: int):
     z = np.load(pool_dir / f"s{scene:02d}_t{target}.npz")
-    ends = np.cumsum(z["lengths"])
-    starts = ends - z["lengths"]
-    return [(z["images"][a:b], z["proprio"][a:b], z["actions"][a:b]) for a, b in zip(starts, ends)]
+    # Read each array once: every z[...] access decompresses the whole array again, and slices of
+    # it would each keep their own full copy alive (300 copies of 69 MB for the few-scene pool).
+    images, proprio, actions, lengths = z["images"], z["proprio"], z["actions"], z["lengths"]
+    ends = np.cumsum(lengths)
+    starts = ends - lengths
+    return [(images[a:b], proprio[a:b], actions[a:b]) for a, b in zip(starts, ends)]

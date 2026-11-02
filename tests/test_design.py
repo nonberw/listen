@@ -74,3 +74,15 @@ def test_random_shift_keeps_shape_and_content_range():
     assert out.shape == img.shape and out.dtype == torch.uint8
     zero = random_shift(img, pad=0)
     assert torch.equal(zero, img)
+
+
+def test_temporal_ensemble_votes_across_chunks():
+    from listen.policy import TemporalEnsemble
+
+    ens = TemporalEnsemble(decay=0.0)
+    first = np.zeros((CHUNK, 4))
+    first[1, 3] = 1.0                      # chunk 1 predicts "close" for the next step
+    np.testing.assert_allclose(ens(first), first[0])
+    second = np.full((CHUNK, 4), -1.0)     # chunk 2 says "open" for its first step
+    out = ens(second)
+    np.testing.assert_allclose(out[3], 0.0)  # equal weights: (+1 + -1) / 2

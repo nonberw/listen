@@ -1,0 +1,14 @@
+{
+  "f": 0.0,
+  "seed": 0,
+  "frames": 24319,
+  "steps": 12000,
+  "final_loss": 0.07643935666233301,
+  "seconds": 324.1214141999999,
+  "colors": [
+    "red",
+    "green",
+    "blue",
+    "yellow"
+  ]
+}

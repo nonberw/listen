@@ -5,7 +5,7 @@
 \hypersetup{colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black}
 
 \title{When Do Robot Policies Learn to Listen?\\[0.3em]
-\large A Controlled Study of Training-Data Structure and Language Grounding}
+\large A Controlled, Pre-Registered Study of Training-Data Structure and Language Grounding}
 \author{nonberw\\\small\texttt{github.com/nonberw/listen}}
 \date{November 2026}
 
@@ -13,7 +13,24 @@
 \maketitle
 
 \begin{abstract}
-%%ABSTRACT%%
+Language-conditioned robot policies often ignore their instructions and execute whatever
+task they learned for the scene in front of them. The usual explanation is the structure of robot
+datasets, in which a scene co-occurs with only one or a few tasks. This explanation has not been
+tested causally. We train visuomotor imitation policies from scratch in a controlled simulated
+pick-up task. Total data (1200 demonstrations), expert, architecture and training recipe are held
+fixed, and the only variable is the fraction $f$ of \emph{contrastive} scenes, demonstrated with
+several instructions. We then ask the policies for blocks that a scene was never demonstrated
+with. Following a pre-registered protocol, we find four things. (i) Contrastive data in some
+scenes transfers grounding to others. The counterfactual grounding rate rises monotonically from
+48.9\% at $f{=}0$ to 61.3\% at $f{=}0.25$ ($p{=}0.033$, Holm) and 71.3\% at $f{=}0.5$
+($p{<}10^{-4}$), with no loss in nominal success. (ii) Small doses, two to four contrastive scenes,
+have no detectable effect. (iii) Contrary to our pre-registered hypothesis, failures at $f{=}0$
+are rarely shortcut executions (1.4\%). They are hesitations: the gripper descends about 5\,cm from
+the instructed block, displaced toward the scene's trained block. (iv) In an exploratory
+experiment with only four scenes, where memorizing scenes is easy, the familiar VLA failure
+appears. Grounding collapses to 0\%, the shortcut rate rises to 17\%, and one contrastive scene
+out of four does not help. Language blindness therefore depends on how easy the scene shortcut is
+to learn relative to the language, and remedies need contrastive data spread across many scenes.
 \end{abstract}
 
 \section{Introduction}
@@ -43,7 +60,18 @@ that the scene was never demonstrated with. All hypotheses, metrics and the anal
 pre-registered before any experiment was run, and every deviation is documented.
 
 \paragraph{Contributions.}
-%%CONTRIBUTIONS%%
+\begin{itemize}
+\item A controlled, pre-registered test of the data-structure explanation for instruction
+blindness, with a dose--response curve over the contrastive fraction at a fixed data budget.
+\item Evidence that grounding \emph{transfers}: contrastive demonstrations in some scenes raise
+instruction following in scenes that were only ever shown with one task.
+\item A failure analysis showing that the dominant failure mode can be \emph{hesitation} rather
+than shortcut execution, and when it turns into the shortcut. An exploratory few-scene experiment
+recovers the VLA failure mode, which suggests that the relative learnability of the scene and the
+language cue is the deciding factor.
+\item Open code, the pre-registration with its commit history, and per-episode records of all
+evaluation episodes.
+\end{itemize}
 
 \section{Related work}
 
@@ -115,13 +143,223 @@ bootstrap (training runs, then episodes). Each $f>0$ is compared with $f=0$ by a
 run-level bootstrap test with Holm correction, together with a logistic regression of grounding on
 categorical $f$ with a fixed seed effect, as pre-registered.
 
-%%RESULTS%%
+\section{Results}
+
+\subsection{Pilot}
+The pilot (seed 99, $f\in\{0,1\}$, excluded from all tests) exposed a manipulation failure that
+had nothing to do with language. When only the first action of each chunk was executed, policies
+reached the block with 2\,mm accuracy but almost never closed the gripper (1--3\% nominal success).
+The states just before and just after the expert closes look the same, and the regressed gripper
+command settled around $-0.5$. Temporal ensembling~\citep{zhao2023act} fixed this (80--87\%
+nominal success on a 30-episode check). We adopted it as a pre-declared pilot-stage deviation
+before the main sweep. The pilot also suggested that our first hypothesis would fail, which
+motivated experiment~E (Section~\ref{sec:fewscenes}). That experiment was registered before any
+main-sweep result was seen.
+
+\subsection{Contrastive data transfers grounding}
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{grounding.pdf}
+\caption{\textbf{Left:} rate of going for the instructed block against the contrastive fraction
+$f$. The counterfactual curves (red) are measured in scenes that are non-contrastive for every
+$f\le0.5$, so for $f\le0.5$ any gain is transfer from \emph{other} scenes. Error bars are 95\%
+two-level bootstrap CIs and small dots are individual training runs. At $f{=}1$ these scenes are
+themselves contrastive, so that point is an in-distribution reference, not transfer.
+\textbf{Right:} outcome of counterfactual episodes. Taking the scene's trained block (the
+``shortcut'') is rare at every $f$, and failures are almost all ``no block''.}
+\label{fig:main}
+\end{figure}
+
+\begin{table}[t]
+\centering\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lcccccc}
+\toprule
+& \multicolumn{3}{c}{counterfactual (non-contrastive scenes)} & paraphrase & held-out & nominal \\
+\cmidrule(lr){2-4}
+$f$ & grounded [95\% CI] & shortcut & none & grounded & grounded & success [95\% CI] \\
+\midrule
+% generated by scripts/analyze.py output (table_main)
+0 & 48.9 [44.9, 52.8] & 1.4 & 49.3 & 43.9 & 47.0 & 87.6 [84.0, 90.9] \\
+0.05 & 49.1 [40.4, 57.3] & 3.6 & 46.9 & 46.7 & 48.5 & 87.3 [82.7, 91.8] \\
+0.1 & 54.6 [42.8, 70.4] & 3.0 & 42.1 & 56.9 & 59.3 & 88.2 [84.9, 91.3] \\
+0.25 & 61.3 [51.0, 70.3] & 1.9 & 36.8 & 63.6 & 57.8 & 90.9 [85.6, 95.1] \\
+0.5 & 71.3 [64.6, 76.7] & 0.4 & 28.2 & 73.9 & 71.9 & 91.8 [89.1, 94.2] \\
+1 & 87.3 [84.8, 89.8] & 0.0 & 12.7 & 90.0 & 83.0 & 84.4 [80.2, 88.2] \\
+\bottomrule
+\end{tabular}
+\caption{Main results, in \%. There are 3 training runs per row; each run is evaluated on 300 counterfactual, 120
+paraphrase, 90 held-out-layout and 150 nominal episodes.}
+\label{tab:main}
+\end{table}
+
+Figure~\ref{fig:main} and Table~\ref{tab:main} show the main result. Counterfactual grounding in
+the non-contrastive evaluation scenes increases monotonically with $f$, from 48.9\% at $f{=}0$ to
+71.3\% at $f{=}0.5$. These twenty scenes were demonstrated with a single target in every one of
+these conditions, so the gain comes entirely from contrastive data \emph{elsewhere}. The same
+trend appears with paraphrases never seen in training and on scene layouts never seen at all.
+
+\begin{table}[h]
+\centering\small
+\begin{tabular}{lccc}
+\toprule
+$f$ vs.\ $0$ & $\Delta$ grounding (pts) & $p$ (one-sided) & $p$ (Holm) \\
+\midrule
+% generated by scripts/analyze.py output (table_tests)
+0.05 & +0.2 & 0.4549 & 0.5346 \\
+0.1 & +5.7 & 0.2673 & 0.5346 \\
+0.25 & +12.4 & 0.0111 & 0.0333 \\
+0.5 & +22.4 & 0.0000 & 0.0000 \\
+\bottomrule
+\end{tabular}
+\caption{Pre-registered run-level bootstrap tests ($10^4$ resamples; $0.0000$ means no
+resample reached $\Delta\le0$).}
+\label{tab:tests}
+\end{table}
+
+Table~\ref{tab:tests} gives the pre-registered tests. The effect is significant at $f{=}0.25$
+(10 contrastive scenes) and $f{=}0.5$ (20 scenes), but not at $f{=}0.05$ or $f{=}0.1$ (2 and
+4 scenes). The pre-registered logistic regression with a fixed seed effect agrees in direction,
+with log-odds coefficients of $0.01$, $0.23$, $0.51$ and $0.97$ for $f=0.05\ldots0.5$, and it calls
+$f{=}0.1$ significant ($p{=}0.015$). That model treats episodes as independent and ignores
+within-run correlation, so we consider the run-level test the more trustworthy one, and we
+do not claim an effect at $f{=}0.1$. Seed-to-seed variation is large: at $f{=}0.1$ the three runs
+reach 43\%, 50\% and 71\%. No $f<1$ reaches 80\% counterfactual grounding, so the
+pre-registered $f_{80}$ is 1.
+
+\paragraph{Hypotheses.}
+\textbf{H1} (low grounding and frequent shortcut at $f{=}0$) is \emph{rejected}: grounding is
+48.9\% [44.9, 52.8], well above chance, and the shortcut rate is 1.4\%.
+\textbf{H2} (monotonic increase) is supported.
+\textbf{H3} (transfer at $f\in\{0.1, 0.25\}$) is supported at $f{=}0.25$ and not at $f{=}0.1$.
+\textbf{H4} (nominal success drops by at most 10 points) is supported: the largest drop is
+3.2 points, at $f{=}1$.
+
+\subsection{How policies fail: hesitation, not stubbornness}
+Across all conditions, when a policy commits to a block it is almost always the instructed one.
+The third block, never demonstrated in the scene and not named, is chosen in at most 0.4\% of
+counterfactual episodes. The failures are ``no block'' episodes. To see what happens in them, we
+replayed the first 120 counterfactual episodes of one $f{=}0$ run and one $f{=}0.5$ run and
+logged the gripper path. At $f{=}0$, 63 of 120 episodes committed to nothing. In those episodes
+the gripper still descended to the table (median lowest height 1.4\,cm), but it ended up a
+median 4.9\,cm from the instructed block and 10.5\,cm from the trained block, which on average
+sit 14.2\,cm apart. In 71\% of these episodes it was closer to the instructed block. At $f{=}0.5$,
+45 of 120 episodes committed to nothing, and the miss shrank to 2.9\,cm from the instructed block.
+The policy reads the instruction well enough to head the right way, but it is pulled partway
+toward the scene's trained block and misses the 3\,cm commit radius. This is consistent with a
+mean-squared-error policy averaging two attractors, one from the instruction and one from
+scene memory. It is also the behavioral counterpart of the ``encoded but not in control''
+finding of \citet{jiang2026encoded}. Contrastive data reduces the pull.
+
+\subsection{Exploratory: with few scenes, the shortcut comes back}\label{sec:fewscenes}
+Why did $f{=}0$ yield substantial grounding instead of the shortcut that VLAs show? In our main
+design, default targets are balanced over colors across 40 scenes, so the scene shortcut means
+memorizing 40 scene-to-target pairs, while the language shortcut is a single rule: match the color
+word to the color. We expected the shortcut to return when scene memorization is easy, and tested
+this with four scenes and the same 1200 demonstrations (Table~\ref{tab:e}, Figure~\ref{fig:e}).
+This experiment is exploratory: it was added after the pilot, but registered before the main
+results were seen.
+
+\begin{table}[h]
+\centering\small
+\begin{tabular}{lccccc}
+\toprule
+& \multicolumn{4}{c}{counterfactual} & nominal \\
+\cmidrule(lr){2-5}
+Regime & grounded & shortcut [95\% CI] & third block & none & success \\
+\midrule
+% generated by scripts/analyze.py output (table_e)
+40 scenes, $f=0$ & 48.9 & 1.4 [0.3, 2.7] & 0.3 & 49.3 & 87.6 \\
+4 scenes, $f=0$ & 0.0 & 17.0 [10.1, 24.2] & 8.7 & 74.3 & 97.8 \\
+4 scenes, $f=0.25$ & 0.1 & 29.0 [22.2, 38.0] & 0.1 & 70.8 & 98.9 \\
+\bottomrule
+\end{tabular}
+\caption{Experiment E (exploratory), in \%. There are 3 runs per row. Counterfactual episodes are in
+the three scenes that are non-contrastive in both few-scene conditions.}
+\label{tab:e}
+\end{table}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.62\linewidth]{experiment_e.pdf}
+\caption{Counterfactual outcomes with 40 and with 4 scenes. With four scenes the policy never
+follows a counterfactual instruction, and the shortcut reappears.}
+\label{fig:e}
+\end{figure}
+
+With four scenes, counterfactual grounding collapses to zero (0 of 900 episodes), and the
+shortcut rate rises from 1.4\% to 17.0\% (E1; run-level bootstrap, $p{<}10^{-4}$). Nominal success
+\emph{increases} to 97.8\%: the policies have memorized the scenes very well. Our second
+expectation (E2) failed. Making one of the four scenes contrastive did not reduce the shortcut in
+the other three; if anything it rose to 29.0\% ($p{=}0.99$ for a reduction). One contrastive scene
+can be solved by memorizing that scene too (scene plus word gives the target) without learning
+the general rule. This matches the main sweep, where two or four contrastive scenes had no
+detectable effect and ten did.
+
+\subsection{The frozen language encoder is itself partly color-blind}
+In the frozen MiniLM embedding space, ``pick up the red block'' is closer to ``pick up the blue
+block'' than to ``grab the red cube''. Across our 8 templates and 4 colors, the mean cosine
+similarity is 0.80 for same template and different color, versus 0.66 for same color and
+different template. In a variance decomposition, the template explains 66\% of the embedding
+variance and the color only 32\%. The policy must learn to amplify a minority direction of its
+own input, which is one more reason the scene can win. Fine-tuning or replacing the encoder is a
+natural follow-up we did not run.
+
+\section{Discussion}
+\paragraph{What decides whether a policy listens?}
+Our results support the data-structure explanation~\citep{fang2026vision,jiang2026encoded}, and
+they also refine it. ``One task per scene'' does not cause language blindness by itself. In our
+40-scene world, every scene had one task at $f{=}0$, and the policies still followed
+counterfactual instructions about half the time. What decided the outcome was whether the scene
+cue was \emph{easier to learn} than the language cue. With many scenes and a simple, shared
+language rule, the language cue wins. With few scenes, the scene cue wins completely. Robot
+benchmarks such as LIBERO~\citep{liu2023libero} have few scenes and rich, task-specific
+instructions, which puts them in the second regime. This view is the standard shortcut-learning
+account~\citep{geirhos2020shortcut} applied to the competition between two input modalities.
+
+\paragraph{How much contrastive data, and where?}
+The practical message is that contrastive data works and transfers. A modest share of scenes
+demonstrated with several instructions improves instruction following everywhere, at no cost to
+nominal performance. But it has to be spread over \emph{many} scenes: in both experiments, one to
+four contrastive scenes did nothing detectable. Because $f$ and the number of contrastive scenes
+are perfectly correlated in our main sweep, we cannot separate the two. Experiment E points to the
+number of distinct contrastive scenes as the factor that matters. This is the direct analogue of
+complementary pairs in VQA~\citep{goyal2017vqa}, which worked because they covered the whole dataset.
+
+\paragraph{Hesitation as a measurable failure mode.}
+Counterfactual evaluations usually score success or ``did the original task''. Our policies
+mostly did neither. Measuring where the gripper ends up separates a policy that ignores language
+from one that reads it but cannot commit, and the two call for different remedies: more
+contrastive data or a multimodal action head, respectively.
 
 \section{Limitations}
-%%LIMITATIONS%%
+\begin{itemize}
+\item \textbf{Scale.} Small policies trained from scratch in simulation, not pretrained VLAs. The
+causal question needs control over the training data, which only this scale allows on our budget.
+Whether the dose--response transfers to large pretrained models is untested.
+\item \textbf{Language.} Instructions differ only in a color word and a paraphrase template. Real
+instructions vary in verbs, objects and spatial relations, and the language cue is then harder
+to learn, which by our own account should make the shortcut stronger.
+\item \textbf{Fraction vs.\ number of scenes.} These are confounded in the main sweep. The
+few-scene experiment suggests that the number of scenes matters, but it is exploratory and has
+only two conditions.
+\item \textbf{Statistics.} Three runs per condition, with large between-run variance. The
+episode-level regression and the run-level test disagree at $f{=}0.1$, and we report the
+conservative one.
+\item \textbf{Execution.} Temporal ensembling was adopted after the pilot (documented). The MSE
+action head may make hesitation more likely than a multimodal head would.
+\item \textbf{Single task family}, one robot, one camera, perfect simulated rendering.
+\end{itemize}
 
 \section{Conclusion}
-%%CONCLUSION%%
+We tested causally the common explanation for why language-conditioned robot policies ignore
+their instructions. Holding the data budget fixed, contrastive demonstrations, meaning the same
+scene with different instructions, raised instruction following even in scenes that never had
+any, with no loss of skill. Small doses had no detectable effect, and a single contrastive scene
+was not enough. Policies did not simply execute the trained task: they hesitated between the
+instruction and the scene's memory. With few scenes, the familiar blindness returned in full.
+For anyone collecting robot data, the recipe is to show the same scenes with different
+instructions, and to do it across many scenes.
 
 \paragraph{Reproducibility.}
 Code, the pre-registration with its commit history, all per-episode evaluation records and the

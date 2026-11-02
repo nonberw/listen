@@ -1,0 +1,10 @@
+armageddon @ git+https://github.com/nonberw/armageddon
+yoink @ git+https://github.com/nonberw/yoink
+numpy>=1.26
+mujoco>=3.2
+torch>=2.2
+sentence-transformers>=3.0
+pandas>=2.0
+statsmodels>=0.14
+matplotlib>=3.8
+pytest>=8.0

@@ -28,18 +28,20 @@ B = 10_000
 
 def load() -> pd.DataFrame:
     rows = []
-    for run in sorted((ROOT / "runs").glob("f*_s*")):
-        m = re.fullmatch(r"f([\d.]+)_s(\d+)", run.name)
+    for run in sorted((ROOT / "runs").glob("*f*_s*")):
+        m = re.fullmatch(r"(few_)?f([\d.]+)_s(\d+)", run.name)
         ep = run / "episodes.json"
         if not m or not ep.exists():
             continue
         for r in json.loads(ep.read_text()):
-            r.update(f=float(m[1]), seed=int(m[2]))
+            r.update(f=float(m[2]), seed=int(m[3]), regime="few" if m[1] else "main")
             rows.append(r)
     df = pd.DataFrame(rows)
     df["grounded"] = (df["committed"] == df["target"]).astype(int)
     df["defaulted"] = (df["default"].notna() & (df["committed"] == df["default"])).astype(int)
     df["lift"] = (df["lifted"] == df["target"]).astype(int)
+    df["none"] = df["committed"].isna().astype(int)
+    df["other"] = (1 - df["grounded"] - df["defaulted"] - df["none"]).clip(lower=0)
     return df
 
 
@@ -71,10 +73,11 @@ def holm(pvals: dict) -> dict:
 
 
 def main():
-    df = load()
-    if df.empty:
+    everything = load()
+    if everything.empty:
         print("no runs yet")
         return
+    df = everything[everything.regime == "main"]
     summary = {"conditions": {}, "tests": {}}
     for f in FRACTIONS:
         d = df[df.f == f]
@@ -83,7 +86,7 @@ def main():
         c = {"runs": int(d.seed.nunique())}
         for kind in ("counterfactual", "nominal", "heldout_scene", "paraphrase_cf"):
             k = d[d.set == kind]
-            c[kind] = {m: boot_ci(k, m) for m in ("grounded", "defaulted", "lift")}
+            c[kind] = {m: boot_ci(k, m) for m in ("grounded", "defaulted", "lift", "none", "other")}
             c[kind]["per_seed"] = {int(s): float(g.grounded.mean()) for s, g in k.groupby("seed")}
         summary["conditions"][str(f)] = c
 
@@ -110,17 +113,73 @@ def main():
            and summary["conditions"][str(f)]["counterfactual"]["grounded"][0] >= 0.8]
     summary["f80"] = min(f80) if f80 else None
 
+    few = everything[everything.regime == "few"]
+    if not few.empty:
+        summary["experiment_E"] = experiment_e(df, few)
+        plot_e(summary)
+
     (ROOT / "results" / "summary.json").write_text(json.dumps(summary, indent=2))
     plot(summary)
     print(json.dumps({f: {k: round(v["grounded"][0], 3) for k, v in c.items() if isinstance(v, dict) and "grounded" in v}
                       for f, c in summary["conditions"].items()}, indent=1))
     print("tests:", json.dumps(summary["tests"], indent=1))
     print("f80:", summary["f80"])
+    if "experiment_E" in summary:
+        print("experiment E:", json.dumps(summary["experiment_E"], indent=1))
+
+
+def experiment_e(main_df, few):
+    """Exploratory: does the shortcut come back when there are only 4 scenes to memorize?"""
+    out = {}
+    for f in sorted(few.f.unique()):
+        d = few[(few.f == f) & (few.set == "counterfactual")]
+        n = few[(few.f == f) & (few.set == "nominal")]
+        out[f"few_f{f:g}"] = {"runs": int(d.seed.nunique()),
+                              **{m: boot_ci(d, m) for m in ("grounded", "defaulted", "none", "other")},
+                              "nominal": boot_ci(n, "grounded"),
+                              "per_seed_default": {int(s): float(g.defaulted.mean()) for s, g in d.groupby("seed")}}
+    m0 = main_df[(main_df.f == 0) & (main_df.set == "counterfactual")]
+    f0 = few[(few.f == 0) & (few.set == "counterfactual")]
+    if not f0.empty:
+        a = [g.defaulted.mean() for _, g in m0.groupby("seed")]
+        b = [g.defaulted.mean() for _, g in f0.groupby("seed")]
+        diffs = np.array([np.mean(RNG.choice(b, len(b))) - np.mean(RNG.choice(a, len(a))) for _ in range(B)])
+        out["E1_default_few_minus_main_at_f0"] = {"diff": float(np.mean(b) - np.mean(a)), "p_one_sided": float(np.mean(diffs <= 0))}
+    f25 = few[(few.f == 0.25) & (few.set == "counterfactual")]
+    if not f0.empty and not f25.empty:
+        a = [g.defaulted.mean() for _, g in f0.groupby("seed")]
+        b = [g.defaulted.mean() for _, g in f25.groupby("seed")]
+        diffs = np.array([np.mean(RNG.choice(a, len(a))) - np.mean(RNG.choice(b, len(b))) for _ in range(B)])
+        out["E2_default_drop_f0.25_vs_f0"] = {"diff": float(np.mean(a) - np.mean(b)), "p_one_sided": float(np.mean(diffs <= 0))}
+    return out
+
+
+def plot_e(summary):
+    e, c = summary["experiment_E"], summary["conditions"]
+    bars = [("40 scenes, f = 0", c["0.0"]["counterfactual"]), ("40 scenes, f = 0.25", c["0.25"]["counterfactual"]),
+            ("4 scenes, f = 0", e.get("few_f0")), ("4 scenes, f = 0.25", e.get("few_f0.25"))]
+    bars = [(n, b) for n, b in bars if b]
+    fig, ax = plt.subplots(figsize=(5.2, 3.4), dpi=150)
+    bottom = np.zeros(len(bars))
+    for key, color, label in (("grounded", "#d62728", "instructed block"),
+                              ("defaulted", "#555555", "scene's trained block (shortcut)"),
+                              ("other", "#9467bd", "the third block"),
+                              ("none", "#c7c7c7", "no block")):
+        v = 100 * np.array([b[key][0] for _, b in bars])
+        ax.bar(range(len(bars)), v, bottom=bottom, color=color, label=label, width=0.65)
+        bottom += v
+    ax.set_xticks(range(len(bars)), [n.replace(", ", chr(10)) for n, _ in bars], fontsize=8)
+    ax.set_ylabel("share of counterfactual episodes (%)")
+    ax.set_title("Few scenes: the shortcut comes back", fontsize=10)
+    ax.legend(fontsize=6.5, frameon=False, loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=2)
+    fig.tight_layout()
+    fig.savefig(ROOT / "results" / "experiment_e.png")
+    fig.savefig(ROOT / "paper" / "experiment_e.pdf")
 
 
 def plot(summary):
     plt.style.use("default")
-    fig, axes = plt.subplots(1, 2, figsize=(10, 3.8), dpi=150)
+    fig, axes = plt.subplots(1, 2, figsize=(10, 4.4), dpi=150)
     fs = [float(f) for f in summary["conditions"]]
     x = np.arange(len(fs))
     labels = [f"{f:g}" for f in fs]
@@ -142,20 +201,21 @@ def plot(summary):
     axes[0].set_ylim(-3, 103)
     axes[0].axhline(100 / 3, color="gray", ls=":", lw=1)
     axes[0].text(0.02, 100 / 3 + 1.5, "chance (1 of 3)", color="gray", fontsize=7)
-    axes[0].legend(fontsize=7, frameon=False, loc="lower right")
+    axes[0].legend(fontsize=6.5, frameon=False, loc="upper center", bbox_to_anchor=(0.5, -0.17), ncol=2)
     axes[0].set_title("Grounding vs. training-data structure", fontsize=10)
 
-    d = [summary["conditions"][str(f)]["counterfactual"]["defaulted"][0] for f in fs]
-    g = [summary["conditions"][str(f)]["counterfactual"]["grounded"][0] for f in fs]
-    other = [max(0.0, 1 - a - b) for a, b in zip(d, g)]
-    axes[1].bar(x, 100 * np.array(g), color="#d62728", label="instructed block")
-    axes[1].bar(x, 100 * np.array(d), bottom=100 * np.array(g), color="#7f7f7f", label="scene's trained block (shortcut)")
-    axes[1].bar(x, 100 * np.array(other), bottom=100 * (np.array(g) + np.array(d)), color="#c7c7c7",
-                label="other block / none")
+    bottom = np.zeros(len(fs))
+    for key, color, label in (("grounded", "#d62728", "instructed block"),
+                              ("defaulted", "#555555", "scene's trained block (shortcut)"),
+                              ("other", "#9467bd", "the third block"),
+                              ("none", "#c7c7c7", "no block (hesitates / misses)")):
+        v = 100 * np.array([summary["conditions"][str(f)]["counterfactual"][key][0] for f in fs])
+        axes[1].bar(x, v, bottom=bottom, color=color, label=label)
+        bottom += v
     axes[1].set_xticks(x, labels)
     axes[1].set_xlabel("f")
     axes[1].set_ylabel("share of counterfactual episodes (%)")
-    axes[1].legend(fontsize=7, frameon=False)
+    axes[1].legend(fontsize=6.5, frameon=False, loc="upper center", bbox_to_anchor=(0.5, -0.17), ncol=2)
     axes[1].set_title("What the policy does when asked for something new", fontsize=10)
     fig.tight_layout()
     fig.savefig(ROOT / "results" / "grounding.png")
