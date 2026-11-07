@@ -1,5 +1,10 @@
 # LISTEN: When Do Robot Policies Learn to Listen?
 
+[![tests](https://github.com/nonberw/listen/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/nonberw/listen/actions/workflows/tests.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](requirements.txt)
+[![MuJoCo](https://img.shields.io/badge/physics-MuJoCo-0b7285.svg)](https://mujoco.org)
+
 **A controlled, pre-registered study of why language-conditioned robot policies ignore their instructions.**
 
 [Paper (PDF)](paper/main.pdf) · [Pre-registration](PREREGISTRATION.md) · [Overview in Russian (PDF)](docs/listen_overview_ru.pdf)
