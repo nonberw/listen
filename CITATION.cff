@@ -4,6 +4,14 @@ title: "When Do Robot Policies Learn to Listen? A Controlled, Pre-Registered Stu
 authors:
   - family-names: Zhambakin
     given-names: Anuar
+doi: "10.5281/zenodo.24041281"
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.24041281"
+    description: "Concept DOI (all versions) on Zenodo"
+  - type: doi
+    value: "10.5281/zenodo.24041282"
+    description: "Version 0.1.0 on Zenodo"
 repository-code: "https://github.com/nonberw/listen"
 url: "https://nonberw.github.io/listen/"
 license: MIT

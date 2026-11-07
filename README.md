@@ -4,6 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](requirements.txt)
 [![MuJoCo](https://img.shields.io/badge/physics-MuJoCo-0b7285.svg)](https://mujoco.org)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24041281.svg)](https://doi.org/10.5281/zenodo.24041281)
 [![Paper](https://img.shields.io/badge/paper-PDF-b31b1b.svg)](paper/main.pdf)
 [![Project page](https://img.shields.io/badge/project-page-1f6feb.svg)](https://nonberw.github.io/listen/)
 [![Pre-registered](https://img.shields.io/badge/pre--registered-prereg--39bf011-2ea44f.svg)](https://github.com/nonberw/listen/blob/prereg-39bf011/PREREGISTRATION.md)
@@ -138,6 +139,7 @@ docs/                project page (index.html, figs/) and an overview of the ide
                   Study of Training-Data Structure and Language Grounding},
   year         = {2026},
   howpublished = {Preprint},
+  doi          = {10.5281/zenodo.24041281},
   url          = {https://github.com/nonberw/listen}
 }
 ```
