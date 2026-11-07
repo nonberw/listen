@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LISTEN: when do robot policies learn to listen?</title>
+<meta name="description" content="A controlled, pre-registered study of why language-conditioned robot policies ignore their instructions: contrastive training scenes transfer grounding to other scenes, but only when spread across many scenes.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="When Do Robot Policies Learn to Listen?">
+<meta property="og:description" content="A controlled, pre-registered study: counterfactual instruction following rises from 48.9% to 71.3% as contrastive scenes go from 0 to half of the training scenes.">
+<meta property="og:url" content="https://nonberw.github.io/listen/">
+<meta property="og:image" content="https://nonberw.github.io/listen/figs/grounding.png">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1f2328; --muted: #59636e; --line: #d1d9e0; --soft: #f6f8fa;
+    --accent: #0969da; --ok: #1a7f37; --bad: #cf222e; --code: #f6f8fa;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1117; --fg: #e6edf3; --muted: #9198a1; --line: #3d444d; --soft: #151b23;
+      --accent: #4493f8; --ok: #3fb950; --bad: #f85149; --code: #151b23;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif; }
+  main { max-width: 880px; margin: 0 auto; padding: 48px 16px 64px; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  header { text-align: center; margin-bottom: 32px; }
+  .kicker { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; }
+  h1 { font-size: clamp(26px, 4.2vw, 38px); line-height: 1.2; margin: 0 0 6px; letter-spacing: -.01em; text-wrap: balance; }
+  .subtitle { font-size: clamp(16px, 2.2vw, 19px); color: var(--muted); margin: 0 0 16px; text-wrap: balance; }
+  .author { font-size: 18px; margin: 0; }
+  .affil { color: var(--muted); margin: 2px 0 20px; }
+  .links { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+  .links a { display: inline-block; padding: 7px 16px; border: 1px solid var(--line); border-radius: 999px;
+    color: var(--fg); background: var(--soft); font-size: 14px; font-weight: 600; }
+  .links a:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+  h2 { font-size: 22px; margin: 48px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+  figure { margin: 24px 0; }
+  figure img { display: block; width: 100%; height: auto; background: #fff; border-radius: 8px; border: 1px solid var(--line); }
+  figcaption { color: var(--muted); font-size: 14px; margin-top: 8px; }
+  .findings { margin: 0; padding-left: 20px; }
+  .findings li { margin-bottom: 10px; }
+  .abstract { text-align: justify; hyphens: auto; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: center; padding: 8px 10px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--muted); font-weight: 600; }
+  .sig { color: var(--ok); font-weight: 600; }
+  pre { position: relative; background: var(--code); border: 1px solid var(--line); border-radius: 8px;
+    padding: 14px 16px; overflow-x: auto; font-size: 13px; line-height: 1.5; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+  .copy { position: absolute; top: 8px; right: 8px; font: 600 12px/1 inherit; font-family: inherit; padding: 6px 10px;
+    border-radius: 6px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); cursor: pointer; }
+  .copy:hover { border-color: var(--accent); color: var(--accent); }
+  .note { color: var(--muted); font-size: 14px; }
+  footer { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; text-align: center; }
+</style>
+</head>
+<body>
+<main>
+<header>
+  <p class="kicker">Preprint 2026 &middot; pre-registered &middot; every episode public</p>
+  <h1>When Do Robot Policies Learn to Listen?</h1>
+  <p class="subtitle">A Controlled, Pre-Registered Study of Training-Data Structure and Language Grounding</p>
+  <p class="author">Anuar Zhambakin</p>
+  <p class="affil">Independent researcher</p>
+  <nav class="links" aria-label="Project links">
+    <a href="https://github.com/nonberw/listen/blob/main/paper/main.pdf">Paper (PDF)</a>
+    <a href="https://github.com/nonberw/listen">Code</a>
+    <a href="https://github.com/nonberw/listen/blob/main/PREREGISTRATION.md">Pre-registration</a>
+    <a href="https://github.com/nonberw/listen/blob/main/docs/listen_overview_ru.pdf">Overview in Russian</a>
+  </nav>
+</header>
+
+<figure>
+  <img src="figs/grounding.png" width="1500" height="650" alt="Left: the share of episodes in which the policy goes for the instructed block rises with the fraction of contrastive training scenes, from about 49 percent to 71 percent at f = 0.5, while nominal success stays near 90 percent. Right: what the policy does when asked for a block the scene was never demonstrated with.">
+  <figcaption>Left: how often the policy goes for the instructed block, against the fraction <em>f</em> of contrastive training scenes (3 seeds, 660 episodes per run). The counterfactual curves (red) rise; nominal success (green) does not drop. Right: what the policy does when asked for something new. At small <em>f</em> it rarely takes the shortcut block; it hesitates and misses.</figcaption>
+</figure>
+
+<h2>The question</h2>
+<p>Vision-language-action robot policies often ignore what you tell them: change the instruction but keep the scene, and they do the task they were trained on in that scene. The usual explanation is the data. Each scene in a robot dataset comes with only one or a few tasks, so the image already tells the policy what to do. That explanation had not been tested causally, because nobody can retrain a big VLA on different data. So this study builds a small world where it <em>can</em> be retrained. Visuomotor policies are trained from scratch with the data budget, expert, architecture and recipe held fixed, and exactly one thing changes: the fraction <em>f</em> of <em>contrastive</em> scenes, demonstrated with several different instructions.</p>
+
+<h2>Findings</h2>
+<ul class="findings">
+  <li><strong>Grounding transfers.</strong> Contrastive data in <em>some</em> scenes makes the policy follow instructions in <em>other</em> scenes that never had any. Nominal skill does not drop.</li>
+  <li><strong>Small doses do nothing.</strong> Two to four contrastive scenes have no detectable effect; ten do.</li>
+  <li><strong>The policies hesitate rather than take the shortcut.</strong> The first pre-registered hypothesis failed: the scene's trained block is taken in only 1.4% of counterfactual episodes. Instead the gripper descends about 5 cm from the instructed block, pulled toward the trained one, and misses.</li>
+  <li><strong>With few scenes, the familiar VLA failure comes back.</strong> In an exploratory experiment with 4 scenes instead of 40, counterfactual grounding drops to 0%, the shortcut rises to 17%, and one contrastive scene out of four does not help.</li>
+</ul>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Contrastive scenes <em>f</em></th><th>0</th><th>0.05</th><th>0.1</th><th>0.25</th><th>0.5</th></tr></thead>
+  <tbody>
+    <tr><td>Follows a counterfactual instruction</td><td>48.9%</td><td>49.1%</td><td>54.6%</td><td class="sig">61.3%</td><td class="sig">71.3%</td></tr>
+    <tr><td>vs. <em>f</em> = 0 (run-level bootstrap, Holm)</td><td></td><td>p = 0.53</td><td>p = 0.53</td><td class="sig">p = 0.033</td><td class="sig">p &lt; 1e-4</td></tr>
+  </tbody>
+</table>
+</div>
+<p class="note">Measured in scenes that were only ever demonstrated with one target in all conditions, asking for a block that scene was never demonstrated with. The upshot: language blindness depends on whether the scene is easier to learn than the language, and the fix is contrastive data spread across many scenes.</p>
+
+<figure>
+  <img src="figs/experiment_e.png" alt="Outcome shares of counterfactual episodes for 40 scenes and for 4 scenes, at f = 0 and f = 0.25. With 4 scenes the policy never goes for the instructed block, and the shortcut block appears." loading="lazy">
+  <figcaption>Exploratory experiment E. With 40 scenes, contrastive data raises counterfactual grounding. With only 4 scenes, where memorising each scene is easy, grounding collapses to 0% and the shortcut to the scene's trained block appears.</figcaption>
+</figure>
+
+<h2>Abstract</h2>
+<p class="abstract">Language-conditioned robot policies often ignore their instructions and execute whatever task they learned for the scene in front of them. The usual explanation is the structure of robot datasets, in which a scene co-occurs with only one or a few tasks. This explanation has not been tested causally. We train visuomotor imitation policies from scratch in a controlled simulated pick-up task. Total data (1200 demonstrations), expert, architecture and training recipe are held fixed, and the only variable is the fraction <em>f</em> of contrastive scenes, demonstrated with several instructions. We then ask the policies for blocks that a scene was never demonstrated with. Following a pre-registered protocol, we find four things. (i) Contrastive data in some scenes transfers grounding to others. The counterfactual grounding rate rises monotonically from 48.9% at <em>f</em>&nbsp;=&nbsp;0 to 61.3% at <em>f</em>&nbsp;=&nbsp;0.25 (p&nbsp;=&nbsp;0.033, Holm) and 71.3% at <em>f</em>&nbsp;=&nbsp;0.5 (p&nbsp;&lt;&nbsp;10<sup>&minus;4</sup>), with no loss in nominal success. (ii) Small doses, two to four contrastive scenes, have no detectable effect. (iii) Contrary to our pre-registered hypothesis, failures at <em>f</em>&nbsp;=&nbsp;0 are rarely shortcut executions (1.4%). They are hesitations: the gripper descends about 5&nbsp;cm from the instructed block, displaced toward the scene's trained block. (iv) In an exploratory experiment with only four scenes, where memorizing scenes is easy, the familiar VLA failure appears. Grounding collapses to 0%, the shortcut rate rises to 17%, and one contrastive scene out of four does not help. Language blindness therefore depends on how easy the scene shortcut is to learn relative to the language, and remedies need contrastive data spread across many scenes.</p>
+
+<h2>How it was done</h2>
+<figure>
+  <img src="figs/scene.png" alt="The simulated task: a six-joint arm with a gripper above a table with a blue, a green and a yellow block; next to it the low-resolution camera image the policy sees." loading="lazy">
+  <figcaption>The task: pick up the instructed block. Left, the MuJoCo scene; right, the 64&times;64 camera image the policy acts on.</figcaption>
+</figure>
+<ul class="findings">
+  <li><strong>Pre-registered.</strong> Hypotheses, metrics and the analysis plan were committed before any experiment (commit <code>39bf011</code>, tag <code>prereg-39bf011</code>); every later change is logged in a dated deviations section. The repository was published after the experiments finished, so this timestamp comes from the git history, not from a public registry.</li>
+  <li><strong>Controlled.</strong> 40 scene templates with colour-balanced default targets, nested contrastive sets, and exactly 1200 demonstrations per condition, sampled from one shared expert pool.</li>
+  <li><strong>Policy.</strong> A CNN with FiLM conditioning from a frozen MiniLM sentence encoder, ACT-style action chunking with temporal ensembling, and a 64&times;64 camera. The arm, IK and gripper come from <a href="https://github.com/nonberw/armageddon">ARMageddon</a> and <a href="https://github.com/nonberw/yoink">YOINK</a>.</li>
+  <li><strong>Evaluation.</strong> 660 fixed episodes per run, 3 seeds per condition, 24 runs in total plus the pilot. Two-level bootstrap CIs, run-level tests with Holm correction, and the pre-registered logistic regression. Every per-episode record is in the repository.</li>
+</ul>
+
+<h2>Cite</h2>
+<pre id="bib"><button class="copy" type="button" data-target="bibtext">Copy</button><code id="bibtext">@misc{zhambakin2026listen,
+  author       = {Zhambakin, Anuar},
+  title        = {When Do Robot Policies Learn to Listen? A Controlled, Pre-Registered
+                  Study of Training-Data Structure and Language Grounding},
+  year         = {2026},
+  howpublished = {Preprint},
+  url          = {https://github.com/nonberw/listen}
+}</code></pre>
+
+<footer>
+  MIT licensed. Not peer reviewed. See also <a href="https://nonberw.github.io/suss/">SUSS</a>, a mechanistic study of in-context adaptation to unknown physics.<br>
+  <a href="https://github.com/nonberw/listen">github.com/nonberw/listen</a>
+</footer>
+</main>
+<script>
+  document.querySelectorAll(".copy").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var text = document.getElementById(btn.dataset.target).textContent;
+      var done = function () { btn.textContent = "Copied"; setTimeout(function () { btn.textContent = "Copy"; }, 1500); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, function () {});
+    });
+  });
+</script>
+</body>
+</html>

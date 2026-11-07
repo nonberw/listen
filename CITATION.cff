@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use this code or the results, please cite it as below."
+title: "When Do Robot Policies Learn to Listen? A Controlled, Pre-Registered Study of Training-Data Structure and Language Grounding"
+authors:
+  - family-names: Zhambakin
+    given-names: Anuar
+repository-code: "https://github.com/nonberw/listen"
+url: "https://nonberw.github.io/listen/"
+license: MIT
+version: "0.1.0"
+date-released: "2026-11-07"
+keywords:
+  - robot learning
+  - language grounding
+  - vision-language-action
+  - imitation learning
+  - pre-registration
+  - MuJoCo
+abstract: >-
+  A controlled, pre-registered study of why language-conditioned robot policies ignore their instructions.
+  Visuomotor imitation policies are trained from scratch with data budget, expert, architecture and recipe
+  held fixed; only the fraction f of contrastive scenes changes. Counterfactual instruction following rises
+  from 48.9% at f = 0 to 71.3% at f = 0.5 with no loss in nominal success; small doses have no detectable
+  effect; failures are hesitations rather than shortcuts; and with only four scenes the familiar VLA failure
+  returns. The pre-registration is commit 39bf011 (tag prereg-39bf011).

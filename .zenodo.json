@@ -1,0 +1,28 @@
+{
+  "title": "LISTEN: When Do Robot Policies Learn to Listen? (code, pre-registration, per-episode results, paper)",
+  "upload_type": "software",
+  "creators": [
+    {
+      "name": "Zhambakin, Anuar",
+      "affiliation": "Independent researcher"
+    }
+  ],
+  "description": "<p>Code, pre-registration, per-episode evaluation records and paper for a controlled, pre-registered study of why language-conditioned robot policies ignore their instructions. Visuomotor imitation policies are trained from scratch in a simulated pick-up task with the data budget, expert, architecture and recipe held fixed; the only variable is the fraction of contrastive scenes, demonstrated with several instructions.</p><p>The pre-registration (hypotheses, metrics and analysis plan) is the git commit 39bf011 (tag <code>prereg-39bf011</code>, 2026-11-03), made before any experiment. The repository was published only after the experiments finished, so this timestamp comes from the git history rather than from a public registry, and this archive is a later snapshot. Deviations are logged in PREREGISTRATION.md.</p>",
+  "license": "MIT",
+  "keywords": [
+    "robot learning",
+    "language grounding",
+    "vision-language-action",
+    "imitation learning",
+    "pre-registration",
+    "MuJoCo"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/nonberw/listen",
+      "relation": "isSupplementTo",
+      "scheme": "url"
+    }
+  ],
+  "access_right": "open"
+}

@@ -4,10 +4,13 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](requirements.txt)
 [![MuJoCo](https://img.shields.io/badge/physics-MuJoCo-0b7285.svg)](https://mujoco.org)
+[![Paper](https://img.shields.io/badge/paper-PDF-b31b1b.svg)](paper/main.pdf)
+[![Project page](https://img.shields.io/badge/project-page-1f6feb.svg)](https://nonberw.github.io/listen/)
+[![Pre-registered](https://img.shields.io/badge/pre--registered-prereg--39bf011-2ea44f.svg)](https://github.com/nonberw/listen/blob/prereg-39bf011/PREREGISTRATION.md)
 
 **A controlled, pre-registered study of why language-conditioned robot policies ignore their instructions.**
 
-[Paper (PDF)](paper/main.pdf) · [Pre-registration](PREREGISTRATION.md) · [Overview in Russian (PDF)](docs/listen_overview_ru.pdf)
+[Paper (PDF)](paper/main.pdf) · [Project page](https://nonberw.github.io/listen/) · [Pre-registration](PREREGISTRATION.md) · [Overview in Russian (PDF)](docs/listen_overview_ru.pdf)
 
 ![main result](results/grounding.png)
 
@@ -58,7 +61,7 @@ with confidence intervals and limitations are in the [paper](paper/main.pdf).
 ## How it was done
 
 - **Pre-registered.** Hypotheses, metrics and the analysis plan were committed *before* any
-  experiment (commit `39bf011`). Every later change is logged in a dated "Deviations" section:
+  experiment (commit `39bf011`, tag `prereg-39bf011`). Every later change is logged in a dated "Deviations" section:
   the pilot-stage fix (temporal ensembling) and exploratory experiment E, registered before any
   main result was seen. See `git log`. The repository was published only after the experiments
   finished, so these timestamps come from the local git history and not from a public registry.
@@ -123,18 +126,19 @@ scripts/             build_pool, train, evaluate, run_sweep, analyze, freeze_ana
 runs/                per-episode evaluation records for every run (weights not included)
 results/             summary.json, figures, failure analysis
 paper/               LaTeX source and PDF
-docs/                overview of the idea and status (Russian)
+docs/                project page (index.html, figs/) and an overview of the idea (Russian)
 ```
 
 ## Cite
 
 ```bibtex
-@misc{nonberw2026listen,
-  title  = {When Do Robot Policies Learn to Listen? A Controlled, Pre-Registered Study of
-            Training-Data Structure and Language Grounding},
-  author = {nonberw},
-  year   = {2026},
-  url    = {https://github.com/nonberw/listen}
+@misc{zhambakin2026listen,
+  author       = {Zhambakin, Anuar},
+  title        = {When Do Robot Policies Learn to Listen? A Controlled, Pre-Registered
+                  Study of Training-Data Structure and Language Grounding},
+  year         = {2026},
+  howpublished = {Preprint},
+  url          = {https://github.com/nonberw/listen}
 }
 ```
 
